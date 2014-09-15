@@ -23,8 +23,6 @@
 
 #include "parson.h"
 
-#include <fcntl.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,7 +61,7 @@ int main() {
 
 /* 3 test files from json.org */
 void test_suite_1(void) {
-    int fd;
+    FILE *fp;
     JSON_Value *val;
 
     TEST((val = json_parse_file("tests/test_1_1.txt")) != NULL);
@@ -73,21 +71,17 @@ void test_suite_1(void) {
     TEST((val = json_parse_file("tests/test_1_3.txt")) != NULL);
     if (val) { json_value_free(val); }
 
-    TEST((val = json_parse_fildes(-1)) == NULL);
+    TEST((val = json_parse_file_fp(NULL)) == NULL);
     if (val) { json_value_free(val); }
-    fd = open("tests/test_1_1.txt", O_RDONLY);
-    TEST((val = json_parse_fildes(fd)) != NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
-    fd = open("tests/test_1_2.txt", O_RDONLY);
-    TEST((val = json_parse_fildes(fd)) != NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
-    fd = open("tests/test_1_3.txt", O_RDONLY);
-    TEST((val = json_parse_fildes(fd)) != NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
-    fd = open("tests/test_1_1.txt", O_RDONLY);
-    lseek(fd, 0L, SEEK_END);
-    TEST((val = json_parse_fildes(fd)) == NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_1.txt", "r");
+    TEST((val = json_parse_file_fp(fp)) != NULL);
+    if (fp) { fclose(fp); }; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_2.txt", "r");
+    TEST((val = json_parse_file_fp(fp)) != NULL);
+    if (fp) { fclose(fp); }; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_3.txt", "r");
+    TEST((val = json_parse_file_fp(fp)) != NULL);
+    if (fp) { fclose(fp); }; if (val) { json_value_free(val); }
 
     TEST((val = json_parse_file_with_comments("tests/test_1_1.txt")) != NULL);
     if (val) { json_value_free(val); }
@@ -96,22 +90,21 @@ void test_suite_1(void) {
     TEST((val = json_parse_file_with_comments("tests/test_1_3.txt")) != NULL);
     if (val) { json_value_free(val); }
 
-
-    TEST((val = json_parse_fildes_with_comments(-1)) == NULL);
+    TEST((val = json_parse_file_fp_with_comments(NULL)) == NULL);
     if (val) { json_value_free(val); }
-    fd = open("tests/test_1_1.txt", O_RDONLY);
-    TEST((val = json_parse_fildes_with_comments(fd)) != NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
-    fd = open("tests/test_1_2.txt", O_RDONLY);
-    TEST((val = json_parse_fildes_with_comments(fd)) != NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
-    fd = open("tests/test_1_3.txt", O_RDONLY);
-    TEST((val = json_parse_fildes_with_comments(fd)) != NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
-    fd = open("tests/test_1_1.txt", O_RDONLY);
-    lseek(fd, 0L, SEEK_END);
-    TEST((val = json_parse_fildes_with_comments(fd)) == NULL);
-    if (fd >= 0) { close(fd);}; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_1.txt", "r");
+    TEST((val = json_parse_file_fp_with_comments(fp)) != NULL);
+    if (fp) { fclose(fp);}; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_2.txt", "r");
+    TEST((val = json_parse_file_fp_with_comments(fp)) != NULL);
+    if (fp) { fclose(fp);}; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_3.txt", "r");
+    TEST((val = json_parse_file_fp_with_comments(fp)) != NULL);
+    if (fp) { fclose(fp);}; if (val) { json_value_free(val); }
+    fp = fopen("tests/test_1_1.txt", "r");
+    fseek(fp, 0L, SEEK_END);
+    TEST((val = json_parse_file_fp_with_comments(fp)) != NULL);
+    if (fp) { fclose(fp);}; if (val) { json_value_free(val); }
 }
 
 /* Testing correctness of parsed values */
@@ -178,7 +171,7 @@ void test_suite_2(JSON_Value *root_value) {
 }
 
 void test_suite_2_no_comments(void) {
-    int fildes;
+    FILE *ifp;
     const char *filename = "tests/test_2.txt";
     JSON_Value *root_value = NULL;
     printf("Testing %s:\n", filename);
@@ -186,27 +179,30 @@ void test_suite_2_no_comments(void) {
     test_suite_2(root_value);
     json_value_free(root_value);
 
-    fildes = open(filename, O_RDONLY); 
-    printf("Testing with fildesc %d of %s:\n", fildes, filename);
-    root_value = json_parse_fildes(fildes);
+    ifp = fopen(filename, "r");
+    printf("Testing with file_fp of %s:\n", filename);
+    root_value = json_parse_file_fp(ifp);
     test_suite_2(root_value);
     json_value_free(root_value);
+    if (ifp) { fclose(ifp);}
 }
 
 void test_suite_2_with_comments(void) {
-    int fildes;
+    FILE *ifp;
     const char *filename = "tests/test_2_comments.txt";
+
     JSON_Value *root_value = NULL;
     printf("Testing %s:\n", filename);
     root_value = json_parse_file_with_comments(filename);
     test_suite_2(root_value);
     json_value_free(root_value);
 
-    fildes = open(filename, O_RDONLY); 
-    printf("Testing with fildesc %d of %s:\n", fildes, filename);
-    root_value = json_parse_fildes_with_comments(fildes);
+    ifp = fopen(filename, "r");
+    printf("Testing with filefp of %s:\n", filename);
+    root_value = json_parse_file_fp_with_comments(ifp);
     test_suite_2(root_value);
     json_value_free(root_value);
+    if (ifp) { fclose(ifp);}
 }
 
 /* Testing values, on which parsing should fail */

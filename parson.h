@@ -29,6 +29,7 @@ extern "C"
 {
 #endif    
     
+#include <stdio.h>    /* FILE */
 #include <stddef.h>   /* size_t */    
     
 /* Types and enums */
@@ -54,11 +55,11 @@ JSON_Value  * json_parse_file(const char *filename);
 JSON_Value  * json_parse_file_with_comments(const char *filename);
  
 /* Parses first JSON value in a file descriptor, returns NULL in case of error */
-JSON_Value  * json_parse_fildes(const int fildes);
+JSON_Value  * json_parse_file_fp(FILE *fp);
 
 /* Parses first JSON value in a file referenced by the filedescriptor
    and ignores comments (/ * * / and //), returns NULL in case of error */
-JSON_Value * json_parse_fildes_with_comments(const int fd);
+JSON_Value * json_parse_file_fp_with_comments(FILE *fp);
     
 /*  Parses first JSON value in a string, returns NULL in case of error */
 JSON_Value  * json_parse_string(const char *string);

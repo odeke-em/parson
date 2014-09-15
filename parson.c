@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 
 #define ERROR                      0
 #define SUCCESS                    1
@@ -146,50 +145,14 @@ static int is_decimal(const char *string, size_t length) {
     return 1;
 }
 
-static char * read_fildes(const int fd) {
-    char c, *file_contents;
-    unsigned int BUF_INCREMENT_SIZE, i, buf_capacity;
 
-    if (fd < 0)
-        return NULL;
- 
-    i=0, BUF_INCREMENT_SIZE=100, buf_capacity=BUF_INCREMENT_SIZE;
-
-    file_contents = (char *)parson_malloc(sizeof(char) * buf_capacity);
-
-    if (file_contents == NULL)
-        return NULL;
-
-    while (read(fd, &c, 1) == 1 && c != EOF) {
-        if (i >= buf_capacity) {
-            buf_capacity += BUF_INCREMENT_SIZE;
-
-            if (try_realloc((void **)&file_contents, sizeof(char) * buf_capacity) == ERROR)
-                return NULL;
-        }
-
-        file_contents[i++] = c;
-    }
-
-    if (i < 1) {
-        parson_free(file_contents);
-        file_contents = NULL;
-    } else {
-        if (try_realloc((void **)&file_contents, sizeof(char) * (i+1)) == ERROR)
-            file_contents = NULL;
-        else
-            file_contents[i] = '\0';
-    }
-
-    return file_contents;
-}
-
-static char * read_file(const char * filename) {
-    FILE *fp = fopen(filename, "r");
+static char * read_file_fp(FILE *fp) {
     size_t file_size;
     char *file_contents;
+
     if (!fp)
         return NULL;
+
     fseek(fp, 0L, SEEK_END);
     file_size = ftell(fp);
     rewind(fp);
@@ -200,13 +163,22 @@ static char * read_file(const char * filename) {
     }
     if (fread(file_contents, file_size, 1, fp) < 1) {
         if (ferror(fp)) {
-            fclose(fp);
             parson_free(file_contents);
             return NULL;
         }
     }
-    fclose(fp);
     file_contents[file_size] = '\0';
+    return file_contents;
+}
+
+static char * read_file(const char * filename) {
+    char *file_contents=NULL;
+    FILE *ifp = fopen(filename, "r");
+    if (ifp != NULL) {
+        file_contents = read_file_fp(ifp);
+        fclose(ifp);
+    }
+
     return file_contents;
 }
 
@@ -684,8 +656,8 @@ JSON_Value * json_parse_file_with_comments(const char *filename) {
     return output_value;
 }
 
-JSON_Value * json_parse_fildes(const int fd) {
-    char *file_contents = read_fildes(fd);
+JSON_Value * json_parse_file_fp(FILE *fp) {
+    char *file_contents = read_file_fp(fp);
     JSON_Value *output_value = NULL;
     if (!file_contents)
         return NULL;
@@ -694,8 +666,8 @@ JSON_Value * json_parse_fildes(const int fd) {
     return output_value;
 }
 
-JSON_Value * json_parse_fildes_with_comments(const int fd) {
-    char *file_contents = read_fildes(fd);
+JSON_Value * json_parse_file_fp_with_comments(FILE *fp) {
+    char *file_contents = read_file_fp(fp);
     JSON_Value *output_value = NULL;
     if (!file_contents)
         return NULL;
