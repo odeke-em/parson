@@ -157,10 +157,9 @@ static char * read_file_fp(FILE *fp) {
     file_size = ftell(fp);
     rewind(fp);
     file_contents = (char*)parson_malloc(sizeof(char) * (file_size + 1));
-    if (!file_contents) {
-        fclose(fp);
+    if (!file_contents)
         return NULL;
-    }
+
     if (fread(file_contents, file_size, 1, fp) < 1) {
         if (ferror(fp)) {
             parson_free(file_contents);
